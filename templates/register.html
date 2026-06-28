@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}რეგისტრაცია - choloka.ge{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper animate-fade">
+    <div class="glass-panel auth-card" style="border-radius: var(--border-radius-md); box-shadow: var(--shadow-lg); background: #ffffff;">
+        <div class="auth-header">
+            <h1 style="background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-emerald) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 30px;">რეგისტრაცია</h1>
+            <p style="color: var(--text-secondary); margin-top: 5px;">შექმენით ანგარიში საგანმანათლებლო პლატფორმაზე</p>
+        </div>
+        
+        <form action="{{ url_for('register') }}" method="POST">
+            <div class="form-group">
+                <label for="username"><i class="fa-solid fa-user" style="color: var(--accent-blue);"></i> მომხმარებლის სახელი</label>
+                <input type="text" id="username" name="username" class="form-control" placeholder="მაგ: shota123" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email"><i class="fa-solid fa-envelope" style="color: var(--accent-blue);"></i> ელ-ფოსტა</label>
+                <input type="email" id="email" name="email" class="form-control" placeholder="მაგ: example@gmail.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password"><i class="fa-solid fa-lock" style="color: var(--accent-blue);"></i> პაროლი</label>
+                <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="role"><i class="fa-solid fa-user-tag" style="color: var(--accent-blue);"></i> აირჩიეთ სტატუსი</label>
+                <select id="role" name="role" class="form-control" required onchange="toggleEducationalFields()">
+                    <option value="student">მოსწავლე</option>
+                    <option value="teacher">მასწავლებელი</option>
+                    <option value="other">სხვა</option>
+                </select>
+            </div>
+            
+            <!-- School & City (visible for teacher and student) -->
+            <div id="educational-fields" style="border-top: 1px solid var(--glass-border); padding-top: 15px; margin-top: 15px;">
+                <h4 style="font-size: 14px; color: var(--accent-amber); margin-bottom: 12px;">
+                    <i class="fa-solid fa-building-columns"></i> საგანმანათლებლო ინფორმაცია
+                </h4>
+                
+                <div class="form-group">
+                    <label for="school"><i class="fa-solid fa-school" style="color: var(--accent-blue);"></i> სკოლა</label>
+                    <input type="text" id="school" name="school" class="form-control" placeholder="მაგ: N17 საჯარო სკოლა" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="city"><i class="fa-solid fa-city" style="color: var(--accent-blue);"></i> ქალაქი / რეგიონი</label>
+                    <input type="text" id="city" name="city" class="form-control" placeholder="მაგ: თბილისი" required>
+                </div>
+                
+                <!-- Phone (visible only for teacher) -->
+                <div id="phone-field-wrapper">
+                    <div class="form-group">
+                        <label for="phone"><i class="fa-solid fa-phone" style="color: var(--accent-blue);"></i> ტელეფონის ნომერი</label>
+                        <input type="text" id="phone" name="phone" class="form-control" placeholder="მაგ: 599 12 34 56">
+                    </div>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">
+                რეგისტრაცია <i class="fa-solid fa-user-plus"></i>
+            </button>
+        </form>
+        
+        <div class="auth-footer">
+            <p>უკვე გაქვთ ანგარიში? <a href="{{ url_for('login') }}" style="font-weight: 600;">შედით</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleEducationalFields() {
+    const roleSelect = document.getElementById('role');
+    const eduFields = document.getElementById('educational-fields');
+    const phoneWrapper = document.getElementById('phone-field-wrapper');
+    const schoolInput = document.getElementById('school');
+    const cityInput = document.getElementById('city');
+    const phoneInput = document.getElementById('phone');
+    
+    const role = roleSelect.value;
+    
+    if (role === 'student') {
+        eduFields.style.display = 'block';
+        phoneWrapper.style.display = 'none';
+        schoolInput.required = true;
+        cityInput.required = true;
+        phoneInput.required = false;
+    } else if (role === 'teacher') {
+        eduFields.style.display = 'block';
+        phoneWrapper.style.display = 'block';
+        schoolInput.required = true;
+        cityInput.required = true;
+        phoneInput.required = true;
+    } else {
+        eduFields.style.display = 'none';
+        schoolInput.required = false;
+        cityInput.required = false;
+        phoneInput.required = false;
+    }
+}
+
+// Trigger onload to make sure initial view matches option
+document.addEventListener("DOMContentLoaded", toggleEducationalFields);
+</script>
+{% endblock %}

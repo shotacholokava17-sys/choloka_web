@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+
+{% block title %}{{ user.username }}-ს პროფილი - choloka.ge{% endblock %}
+
+{% block content %}
+<div class="animate-fade" style="display: flex; flex-direction: column; gap: 30px;">
+    <!-- Profile Header -->
+    <div class="glass-panel" style="display: flex; align-items: center; gap: 24px; padding: 30px; background: #ffffff; border-radius: var(--border-radius-md); box-shadow: var(--shadow-sm);">
+        <div class="avatar" style="width: 90px; height: 90px; font-size: 36px; flex-shrink: 0;">
+            {% if user.profile_pic %}
+                <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_pic) }}" alt="Avatar">
+            {% else %}
+                {{ user.username[0]|upper }}
+            {% endif %}
+        </div>
+        <div>
+            <h1 style="margin-bottom: 6px; font-size: 28px; display: flex; align-items: center; gap: 10px;">
+                {{ user.username }}
+                {% if user.custom_badge %}
+                    <span class="badge badge-custom" style="font-size: 12px; padding: 4px 10px;"><i class="fa-solid fa-certificate"></i> {{ user.custom_badge }}</span>
+                {% endif %}
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">
+                <i class="fa-solid fa-user-tag" style="color: var(--accent-blue);"></i> 
+                {% if user.is_admin %}
+                    ადმინისტრატორი
+                {% elif user.role == 'teacher' %}
+                    მასწავლებელი
+                {% elif user.role == 'student' %}
+                    მოსწავლე
+                {% else %}
+                    სხვა
+                {% endif %}
+                
+                {% if user.school %}
+                    • <i class="fa-solid fa-school" style="color: var(--accent-blue);"></i> {{ user.school }} ({{ user.city }})
+                {% endif %}
+            </p>
+            <div style="display: flex; gap: 15px; margin-bottom: 12px; font-size: 14px;">
+                <div><strong id="followers-count" style="color: var(--text-primary);">{{ user.followers.count() }}</strong> <span style="color: var(--text-secondary);">გამომწერი</span></div>
+                <div><strong style="color: var(--text-primary);">{{ user.followed.count() }}</strong> <span style="color: var(--text-secondary);">გამოწერილი</span></div>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                {% if current_user.is_authenticated and current_user != user %}
+                    {% if current_user.is_following(user) %}
+                        <button id="follow-btn" onclick="toggleFollow({{ user.id }})" class="btn btn-secondary" style="font-size: 12px; padding: 8px 16px;">
+                            Unfollow
+                        </button>
+                    {% else %}
+                        <button id="follow-btn" onclick="toggleFollow({{ user.id }})" class="btn btn-primary" style="font-size: 12px; padding: 8px 16px;">
+                            Follow
+                        </button>
+                    {% endif %}
+                {% endif %}
+                
+                <a href="{{ url_for('get_chat', recipient_id=user.id) }}" class="btn btn-primary" style="font-size: 12px; padding: 8px 16px;">
+                    მიწერა <i class="fa-solid fa-paper-plane"></i>
+                </a>
+                
+                {% if user.cv_url %}
+                    <a href="{{ url_for('static', filename='uploads/pdfs/' + user.cv_url) }}" target="_blank" class="btn btn-secondary" style="font-size: 12px; padding: 8px 16px;">
+                        CV / დოკუმენტები <i class="fa-regular fa-file-pdf" style="color: var(--accent-rose);"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div style="display: grid; grid-template-columns: 320px 1fr; gap: 30px; align-items: start;">
+        <!-- Left: Details & Bio -->
+        <div class="glass-panel" style="background: #ffffff; border-radius: var(--border-radius-md); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 20px;">
+            <div>
+                <h3 style="font-size: 16px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid var(--glass-border); padding-bottom: 5px;">ბიოგრაფია</h3>
+                <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; white-space: pre-line;">
+                    {{ user.bio or 'ბიოგრაფია არ არის მითითებული.' }}
+                </p>
+            </div>
+            
+            {% if user.school %}
+            <div>
+                <h3 style="font-size: 16px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid var(--glass-border); padding-bottom: 5px;">საგანმანათლებლო ინფორმაცია</h3>
+                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;">
+                    <div><strong style="color: var(--text-primary);">სკოლა:</strong> {{ user.school }}</div>
+                    <div><strong style="color: var(--text-primary);">ქალაქი:</strong> {{ user.city }}</div>
+                    {% if user.role == 'teacher' and user.phone %}
+                        <div><strong style="color: var(--text-primary);">ტელეფონი:</strong> {{ user.phone }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right: User posts -->
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <h2 style="font-size: 20px; color: var(--text-primary);"><i class="fa-regular fa-newspaper" style="color: var(--accent-blue);"></i> პოსტები</h2>
+            
+            {% if posts %}
+                {% for post in posts %}
+                    <div class="glass-panel" style="background: #ffffff; border-radius: var(--border-radius-md); box-shadow: var(--shadow-sm);">
+                        <div class="post-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div class="avatar" style="width: 38px; height: 38px; font-size: 14px;">
+                                    {% if user.profile_pic %}
+                                        <img src="{{ url_for('static', filename='uploads/profiles/' + user.profile_pic) }}" alt="Avatar">
+                                    {% else %}
+                                        {{ user.username[0]|upper }}
+                                    {% endif %}
+                                </div>
+                                <div class="post-meta">
+                                    <span class="author-name">{{ user.username }}</span>
+                                    <span class="post-date">{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Three-dots Dropdown Options -->
+                            {% if current_user.is_admin or post.user_id == current_user.id %}
+                                <div class="post-options-dropdown-container">
+                                    <button class="post-options-btn" onclick="togglePostDropdown(event, {{ post.id }})">
+                                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                                    </button>
+                                    <div id="post-dropdown-{{ post.id }}" class="post-options-dropdown">
+                                        <form action="{{ url_for('delete_post', post_id=post.id) }}" method="POST" onsubmit="return confirm('ნამდვილად გსურთ პოსტის წაშლა?');">
+                                            <button type="submit" class="post-delete-btn">
+                                                <i class="fa-regular fa-trash-can"></i> წაშლა
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if post.is_shared %}
+                            <!-- Shared post indicator -->
+                            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+                                <i class="fa-solid fa-share" style="color: var(--accent-blue);"></i>
+                                <span>{{ user.username }}-მა გააზიარა პოსტი</span>
+                            </div>
+                            {% if post.content %}
+                                <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 15px; white-space: pre-wrap;">{{ post.content }}</p>
+                            {% endif %}
+                            
+                            {% if post.original_post %}
+                                {% set orig = post.original_post %}
+                                <div class="shared-post-container">
+                                    <div class="shared-post-header">
+                                        <div class="shared-post-avatar">
+                                            {% if orig.author.profile_pic %}
+                                                <img src="{{ url_for('static', filename='uploads/profiles/' + orig.author.profile_pic) }}" alt="Avatar">
+                                            {% else %}
+                                                {{ orig.author.username[0]|upper }}
+                                            {% endif %}
+                                        </div>
+                                        <div class="shared-post-meta">
+                                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                                <a href="{{ url_for('user_profile', user_id=orig.author.id) }}" class="shared-post-author-name">
+                                                    {{ orig.author.username }}
+                                                </a>
+                                                {% if orig.author.is_admin %}
+                                                    <span class="badge badge-admin" style="font-size: 8px; padding: 2px 6px;">ადმინი</span>
+                                                {% endif %}
+                                            </div>
+                                            <span class="shared-post-date">{{ orig.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                        </div>
+                                    </div>
+                                    <h3 class="shared-post-title">{{ orig.title }}</h3>
+                                    <div class="shared-post-content">{{ orig.content }}</div>
+                                    
+                                    <!-- Original media inside share container -->
+                                    {% if orig.media %}
+                                        <div class="post-media-grid" style="margin-bottom: 10px;">
+                                            {% for m in orig.media %}
+                                                <img src="{{ url_for('static', filename='uploads/posts/' + m.file_path) }}" alt="Post image" onclick="openLightbox(this.src)" style="height: 180px;">
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    {% if orig.media_url %}
+                                        <div class="post-media" style="margin-bottom: 10px;">
+                                            {% if 'youtube.com' in orig.media_url or 'youtu.be' in orig.media_url %}
+                                                <iframe src="{{ orig.media_url | youtube_embed }}" allowfullscreen style="height: 200px;"></iframe>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <div class="shared-post-container">
+                                    <div class="shared-post-deleted">
+                                        <i class="fa-solid fa-circle-exclamation"></i> ორიგინალი პოსტი წაშლილია.
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">{{ post.title }}</h3>
+                            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 15px; white-space: pre-wrap;">{{ post.content }}</p>
+                            
+                            <!-- Uploaded Images Grid -->
+                            {% if post.media %}
+                                <div class="post-media-grid" style="margin-bottom: 15px;">
+                                    {% for m in post.media %}
+                                        <img src="{{ url_for('static', filename='uploads/posts/' + m.file_path) }}" alt="Post image" onclick="openLightbox(this.src)">
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+
+                            <!-- YouTube Embed -->
+                            {% if post.media_url %}
+                                <div class="post-media" style="margin-bottom: 15px;">
+                                    {% if 'youtube.com' in post.media_url or 'youtu.be' in post.media_url %}
+                                        <iframe src="{{ post.media_url | youtube_embed }}" allowfullscreen></iframe>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        {% endif %}
+
+                        <!-- Actions Bar -->
+                        <div class="post-actions-bar">
+                            {% set user_liked = post.likes|selectattr('user_id', 'equalto', current_user.id)|list|length > 0 %}
+                            <button id="like-btn-{{ post.id }}" class="action-btn like-btn {% if user_liked %}liked{% endif %}" onclick="likePost({{ post.id }})">
+                                <i class="{% if user_liked %}fa-solid{% else %}fa-regular{% endif %} fa-heart"></i>
+                                მოწონება (<span id="like-count-{{ post.id }}">{{ post.likes|length }}</span>)
+                            </button>
+                            
+                            <button class="action-btn comment-btn" onclick="toggleComments({{ post.id }})">
+                                <i class="fa-regular fa-comment"></i>
+                                კომენტარი ({{ post.comments|length }})
+                            </button>
+                            
+                            {% if not post.is_shared %}
+                                <button class="action-btn share-btn" onclick="openShareModal({{ post.id }}, '{{ post.title|replace("\'", "\\\'")|replace("\"", "\\\"") }}')">
+                                    <i class="fa-solid fa-share"></i>
+                                    გაზიარება
+                                </button>
+                            {% endif %}
+                        </div>
+
+                        <!-- Comments Drawer -->
+                        <div id="comments-drawer-{{ post.id }}" class="post-comments-drawer">
+                            <div class="comment-list">
+                                {% set sorted_comments = post.comments|sort(attribute='is_pinned', reverse=True) %}
+                                {% for comment in sorted_comments %}
+                                    <div class="comment-item {% if comment.is_pinned %}pinned-comment{% endif %}">
+                                        <div class="comment-item-avatar">
+                                            {% if comment.user.profile_pic %}
+                                                <img src="{{ url_for('static', filename='uploads/profiles/' + comment.user.profile_pic) }}" alt="Avatar">
+                                            {% else %}
+                                                {{ comment.user.username[0]|upper }}
+                                            {% endif %}
+                                        </div>
+                                        <div class="comment-item-body">
+                                            <div class="comment-item-header">
+                                                <div class="comment-author-info">
+                                                    <a href="{{ url_for('user_profile', user_id=comment.user.id) }}" class="comment-author-name">
+                                                        {{ comment.user.username }}
+                                                    </a>
+                                                    {% if comment.user.is_admin %}
+                                                        <span class="badge badge-admin" style="font-size: 8px; padding: 2px 6px;">ადმინი</span>
+                                                    {% elif comment.user.role == 'teacher' %}
+                                                        <span class="badge badge-teacher" style="font-size: 8px; padding: 2px 6px;">მასწავლებელი</span>
+                                                    {% elif comment.user.role == 'student' %}
+                                                        <span class="badge badge-student" style="font-size: 8px; padding: 2px 6px;">მოსწავლე</span>
+                                                    {% endif %}
+                                                    <span class="comment-date">{{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                                </div>
+                                                
+                                                <div class="comment-actions">
+                                                    <!-- Pin Comment -->
+                                                    {% if current_user.is_admin or post.user_id == current_user.id %}
+                                                        <form action="{{ url_for('pin_comment', comment_id=comment.id) }}" method="POST" style="margin: 0;">
+                                                            <button type="submit" class="comment-action-btn pin-btn {% if comment.is_pinned %}pinned{% endif %}" title="{% if comment.is_pinned %}აპინვის მოხსნა{% else %}აპინვა{% endif %}">
+                                                                <i class="fa-solid fa-thumbtack"></i>
+                                                            </button>
+                                                        </form>
+                                                    {% endif %}
+                                                    
+                                                    <!-- Delete Comment -->
+                                                    {% if current_user.is_admin or comment.user_id == current_user.id or post.user_id == current_user.id %}
+                                                        <form action="{{ url_for('delete_comment', comment_id=comment.id) }}" method="POST" style="margin: 0;" onsubmit="return confirm('ნამდვილად გსურთ კომენტარის წაშლა?');">
+                                                            <button type="submit" class="comment-action-btn delete-btn" title="წაშლა">
+                                                                <i class="fa-regular fa-trash-can"></i>
+                                                            </button>
+                                                        </form>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            
+                                            {% if comment.is_pinned %}
+                                                <div style="margin-bottom: 6px;">
+                                                    <span class="comment-badge-pinned"><i class="fa-solid fa-thumbtack"></i> აპინული</span>
+                                                </div>
+                                            {% endif %}
+                                            
+                                            <div class="comment-text">{{ comment.content }}</div>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px 0;">
+                                        კომენტარები ჯერ არ არის.
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <form action="{{ url_for('comment_post', post_id=post.id) }}" method="POST" class="comment-form">
+                                <div class="comment-item-avatar" style="width: 32px; height: 32px; font-size: 13px;">
+                                    {% if current_user.profile_pic %}
+                                        <img src="{{ url_for('static', filename='uploads/profiles/' + current_user.profile_pic) }}" alt="Avatar">
+                                    {% else %}
+                                        {{ current_user.username[0]|upper }}
+                                    {% endif %}
+                                </div>
+                                <textarea name="content" class="comment-form-textarea" placeholder="დაწერეთ კომენტარი..." required></textarea>
+                                <button type="submit" class="btn btn-primary" style="padding: 8px 14px; border-radius: var(--border-radius-sm); font-size: 12px;">
+                                    გაგზავნა <i class="fa-solid fa-paper-plane"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="glass-panel" style="text-align: center; padding: 40px; color: var(--text-secondary); background: #ffffff;">
+                    <i class="fa-solid fa-folder-open" style="font-size: 40px; color: var(--text-muted); margin-bottom: 12px;"></i>
+                    <p>მომხმარებელს ჯერჯერობით არ გამოუქვეყნებია პოსტები.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Image Lightbox Modal -->
+<div id="lightbox-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center;" onclick="closeLightbox()">
+    <img id="lightbox-img" src="" alt="Enlarged Post media" style="max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 4px;">
+    <span style="position: absolute; top: 20px; right: 30px; color: #fff; font-size: 35px; font-weight: bold; cursor: pointer;">&times;</span>
+</div>
+<!-- Share Modal Overlay -->
+<div id="share-modal-overlay" class="share-modal-overlay" onclick="closeShareModal()">
+    <div class="share-modal-content" onclick="event.stopPropagation()">
+        <button class="share-modal-close-btn" onclick="closeShareModal()">&times;</button>
+        <h3 class="share-modal-title">
+            <i class="fa-solid fa-share" style="color: var(--accent-blue);"></i> 
+            პოსტის გაზიარება
+        </h3>
+        <div id="share-preview-title" class="share-modal-preview"></div>
+        
+        <form id="share-form" action="" method="POST">
+            <textarea id="share-comment-textarea" name="share_comment" class="share-modal-textarea" placeholder="დაწერეთ თქვენი აზრი ამ პოსტზე (არასავალდებულო)..."></textarea>
+            <div class="share-modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeShareModal()">გაუქმება</button>
+                <button type="submit" class="btn btn-primary">გაზიარება <i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openLightbox(src) {
+    const modal = document.getElementById('lightbox-modal');
+    const img = document.getElementById('lightbox-img');
+    img.src = src;
+    modal.style.display = 'flex';
+}
+
+function closeLightbox() {
+    const modal = document.getElementById('lightbox-modal');
+    modal.style.display = 'none';
+}
+</script>
+{% endblock %}

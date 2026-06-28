@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}პაროლის შეცვლა - choloka.ge{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper animate-fade">
+    <div class="glass-panel auth-card" style="border-radius: var(--border-radius-md); box-shadow: var(--shadow-lg); background: #ffffff;">
+        <div class="auth-header">
+            <h1 style="background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-rose) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 28px;"><i class="fa-solid fa-lock-open"></i> ახალი პაროლი</h1>
+            <p style="color: var(--text-secondary); margin-top: 5px;">შეიყვანეთ მეილზე მოსული კოდი და ახალი პაროლი</p>
+        </div>
+        
+        <form action="{{ url_for('reset_password') }}" method="POST">
+            <div class="form-group">
+                <label for="code"><i class="fa-solid fa-hashtag" style="color: var(--accent-blue);"></i> აღდგენის კოდი</label>
+                <input type="text" id="code" name="code" class="form-control" placeholder="123456" required style="font-size: 16px; font-weight: bold; text-align: center; letter-spacing: 2px;">
+            </div>
+            
+            <div class="form-group">
+                <label for="password"><i class="fa-solid fa-lock" style="color: var(--accent-blue);"></i> ახალი პაროლი</label>
+                <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" required>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+                პაროლის განახლება <i class="fa-solid fa-circle-check"></i>
+            </button>
+        </form>
+        
+        <div class="auth-footer" style="margin-top: 25px; border-top: 1px solid var(--glass-border); padding-top: 15px;">
+            <p><a href="{{ url_for('recover_password') }}" style="color: var(--text-muted); font-size: 13px;"><i class="fa-solid fa-rotate-left"></i> კოდის ხელახლა მოთხოვნა</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

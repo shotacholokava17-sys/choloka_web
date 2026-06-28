@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+
+{% block title %}მესენჯერი - choloka.ge{% endblock %}
+
+{% block content %}
+<div class="messenger-container animate-fade">
+    <!-- Sidebar: Users & Search -->
+    <div class="messenger-sidebar">
+        <div class="messenger-search">
+            <form action="{{ url_for('messages_list') }}" method="GET" style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="position: relative;">
+                    <input type="text" name="search_name" class="form-control" placeholder="მოძებნეთ სახელით..." value="{{ search_query or '' }}" style="padding-left: 36px;">
+                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 14px; color: var(--text-muted);"></i>
+                </div>
+                
+                <div style="position: relative;">
+                    <input type="text" name="search_school" class="form-control" placeholder="ფილტრი სკოლით..." value="{{ search_school or '' }}" style="padding-left: 36px;">
+                    <i class="fa-solid fa-school" style="position: absolute; left: 12px; top: 14px; color: var(--text-muted);"></i>
+                </div>
+                
+                <button type="submit" class="btn btn-secondary" style="font-size: 12px; padding: 8px 12px;">
+                    ძებნა <i class="fa-solid fa-filter"></i>
+                </button>
+            </form>
+        </div>
+        
+        <div class="messenger-users-list">
+            <h4 style="font-size: 12px; text-transform: uppercase; color: var(--text-muted); margin: 10px 12px 6px;">მიმოწერები</h4>
+            {% if users %}
+                {% for u in users %}
+                    <a href="{{ url_for('get_chat', recipient_id=u.id) }}" class="chat-user-item {% if recipient and recipient.id == u.id %}active{% endif %}" style="text-decoration: none;">
+                        <div class="avatar" style="width: 38px; height: 38px; font-size: 15px; flex-shrink: 0;">
+                            {% if u.profile_pic %}
+                                <img src="{{ url_for('static', filename='uploads/profiles/' + u.profile_pic) }}" alt="Avatar">
+                            {% else %}
+                                {{ u.username[0]|upper }}
+                            {% endif %}
+                        </div>
+                        <div class="user-meta" style="flex-grow: 1; overflow: hidden;">
+                            <span class="name" style="font-size: 13px; font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ u.username }}</span>
+                            <span class="role" style="font-size: 10px; color: var(--text-muted); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                {% if u.is_admin %}
+                                    ადმინი
+                                {% elif u.role == 'teacher' %}
+                                    მასწავლებელი ({{ u.school or 'სკოლა' }})
+                                {% elif u.role == 'student' %}
+                                    მოსწავლე ({{ u.school or 'სკოლა' }})
+                                {% else %}
+                                    სხვა
+                                {% endif %}
+                            </span>
+                        </div>
+                    </a>
+                {% endfor %}
+            {% else %}
+                <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px;">
+                    მომხმარებლები ვერ მოიძებნა. გამოიყენეთ ძებნის ფილტრები.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Chat Area -->
+    <div class="chat-area">
+        {% if recipient %}
+            <div class="chat-header">
+                <div class="avatar" style="width: 40px; height: 40px; font-size: 16px; flex-shrink: 0;">
+                    {% if recipient.profile_pic %}
+                        <img src="{{ url_for('static', filename='uploads/profiles/' + recipient.profile_pic) }}" alt="Avatar">
+                    {% else %}
+                        {{ recipient.username[0]|upper }}
+                    {% endif %}
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 16px;">
+                        <a href="{{ url_for('user_profile', user_id=recipient.id) }}" style="color: var(--text-primary); font-weight: 600;">
+                            {{ recipient.username }}
+                        </a>
+                        {% if recipient.custom_badge %}
+                            <span class="badge badge-custom" style="font-size: 9px; padding: 2px 6px; margin-left: 5px;"><i class="fa-solid fa-certificate"></i> {{ recipient.custom_badge }}</span>
+                        {% endif %}
+                    </h3>
+                    <span style="font-size: 12px; color: var(--text-muted);">
+                        {% if recipient.is_admin %}
+                            ადმინისტრატორი
+                        {% elif recipient.role == 'teacher' %}
+                            მასწავლებელი • {{ recipient.school or 'სკოლა' }} • {{ recipient.city or 'რეგიონი' }}
+                        {% elif recipient.role == 'student' %}
+                            მოსწავლე • {{ recipient.school or 'სკოლა' }}
+                        {% else %}
+                            სხვა
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="chat-messages-container" id="chat-messages">
+                {% if chat_messages %}
+                    {% for m in chat_messages %}
+                        <div class="message-bubble {% if m.sender_id == current_user.id %}sent{% else %}received{% endif %} animate-fade" data-msg-id="{{ m.id }}" style="position: relative;">
+                            {% if m.sender_id == current_user.id and not m.is_deleted %}
+                                <button id="msg-delete-btn-{{ m.id }}" onclick="deleteMessage({{ m.id }})" style="position: absolute; left: -25px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 12px; opacity: 0.5; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5" title="მესიჯის წაშლა">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            {% endif %}
+                            
+                            <div id="msg-content-{{ m.id }}">
+                                {% if m.is_deleted %}
+                                    <i style="color: var(--text-muted);">მესიჯი წაშლილია</i>
+                                {% else %}
+                                    {% if m.file_url %}
+                                        {% if m.is_image %}
+                                            <img src="{{ url_for('static', filename='uploads/chat/' + m.file_url) }}" class="chat-image-attachment" onclick="openLightbox(this.src)">
+                                        {% else %}
+                                            <a href="{{ url_for('static', filename='uploads/chat/' + m.file_url) }}" target="_blank" class="chat-file-attachment">
+                                                <i class="fa-regular fa-file"></i> {{ m.file_name }}
+                                            </a>
+                                        {% endif %}
+                                    {% endif %}
+                                    {% if m.content %}
+                                        <div class="content">{{ m.content }}</div>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            <div class="message-time">{{ m.created_at.strftime('%H:%M') }}</div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="text-align: center; color: var(--text-muted); padding: 40px;" id="no-msg-info">
+                        <i class="fa-solid fa-comments" style="font-size: 40px; margin-bottom: 10px;"></i>
+                        <p>მიმოწერა ცარიელია. გაგზავნეთ პირველი შეტყობინება!</p>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="chat-input-area">
+                <!-- File Selection Preview Bar -->
+                <div id="file-preview-bar" class="chat-file-preview" style="display: none;">
+                    <div>
+                        <i class="fa-solid fa-paperclip" style="color: var(--accent-blue);"></i> 
+                        <span id="file-preview-name" style="font-weight: 500;"></span>
+                    </div>
+                    <button type="button" onclick="cancelFileSelection()" style="background: none; border: none; color: var(--accent-rose); cursor: pointer; font-size: 16px;">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </button>
+                </div>
+
+                <form id="chat-form" class="chat-input-form" onsubmit="sendMessage(event)" enctype="multipart/form-data">
+                    <input type="file" id="chat-file-input" style="display: none;" onchange="handleFileSelected(event)">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('chat-file-input').click()" style="padding: 12px; height: 46px; display: flex; align-items: center;" title="ფაილის მიმაგრება (მაქს. 2MB)">
+                        <i class="fa-solid fa-paperclip" style="font-size: 16px;"></i>
+                    </button>
+                    
+                    <input type="text" id="chat-input" class="form-control" placeholder="ჩაწერეთ შეტყობინება..." autocomplete="off" style="height: 46px;">
+                    
+                    <button type="submit" class="btn btn-primary" style="padding: 12px 20px; height: 46px; display: flex; align-items: center; gap: 6px;">
+                        გაგზავნა <i class="fa-solid fa-paper-plane" style="font-size: 12px;"></i>
+                    </button>
+                </form>
+            </div>
+        {% else %}
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary); text-align: center; padding: 40px;">
+                <i class="fa-solid fa-paper-plane" style="font-size: 60px; color: var(--text-muted); margin-bottom: 20px; transform: rotate(-20deg);"></i>
+                <h2>მესენჯერი</h2>
+                <p style="max-width: 400px; margin-top: 10px; font-size: 14px; line-height: 1.5;">
+                    აირჩიეთ მომხმარებელი მარცხენა სიიდან მიმოწერის დასაწყებად, ან გამოიყენეთ ძიების სისტემა სახელითა და სკოლით ფილტრაციისთვის.
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Image Lightbox Modal -->
+<div id="lightbox-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center;" onclick="closeLightbox()">
+    <img id="lightbox-img" src="" alt="Enlarged media content" style="max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 4px;">
+    <span style="position: absolute; top: 20px; right: 30px; color: #fff; font-size: 35px; font-weight: bold; cursor: pointer;">&times;</span>
+</div>
+
+{% if recipient %}
+<script>
+    const recipientId = {{ recipient.id }};
+    const currentUserId = {{ current_user.id }};
+    const chatContainer = document.getElementById('chat-messages');
+    
+    // Track already rendered messages to prevent flickering
+    let renderedMessageIds = new Set();
+    
+    // Mark initial messages as rendered
+    document.querySelectorAll('[data-msg-id]').forEach(el => {
+        renderedMessageIds.add(parseInt(el.getAttribute('data-msg-id')));
+    });
+
+    function scrollToBottom() {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    
+    // Initial scroll
+    scrollToBottom();
+
+    // File Selection Logic
+    function handleFileSelected(event) {
+        const fileInput = event.target;
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            
+            // Check file size (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                alert("ფაილის ზომა აღემატება ლიმიტს (2MB).");
+                fileInput.value = '';
+                return;
+            }
+            
+            // Show preview bar
+            document.getElementById('file-preview-name').textContent = file.name;
+            document.getElementById('file-preview-bar').style.display = 'flex';
+        }
+    }
+    
+    function cancelFileSelection() {
+        document.getElementById('chat-file-input').value = '';
+        document.getElementById('file-preview-bar').style.display = 'none';
+    }
+
+    // Send Message AJAX
+    async function sendMessage(event) {
+        event.preventDefault();
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        const fileInput = document.getElementById('chat-file-input');
+        
+        if (!text && fileInput.files.length === 0) return;
+        
+        // Prepare FormData
+        const formData = new FormData();
+        formData.append('content', text);
+        if (fileInput.files.length > 0) {
+            formData.append('chat_file', fileInput.files[0]);
+        }
+        
+        // Clear input values and preview bar
+        input.value = '';
+        cancelFileSelection();
+        
+        try {
+            const response = await fetch(`/messages/${recipientId}`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            });
+            
+            if (response.ok) {
+                const msg = await response.json();
+                
+                // Hide empty message info if visible
+                const noMsgInfo = document.getElementById('no-msg-info');
+                if (noMsgInfo) noMsgInfo.style.display = 'none';
+                
+                // Append bubble if not already present
+                if (!renderedMessageIds.has(msg.id)) {
+                    appendMessageBubble(msg.content, msg.created_at, true, msg.file_url, msg.file_name, msg.is_image, msg.id);
+                    renderedMessageIds.add(msg.id);
+                }
+                scrollToBottom();
+            }
+        } catch (e) {
+            console.error("Error sending message", e);
+        }
+    }
+
+    function appendMessageBubble(content, time, isSent, fileUrl, fileName, isImage, msgId) {
+        const bubble = document.createElement('div');
+        bubble.className = `message-bubble ${isSent ? 'sent' : 'received'} animate-fade`;
+        bubble.setAttribute('data-msg-id', msgId);
+        
+        let mediaHtml = '';
+        if (fileUrl) {
+            if (isImage) {
+                mediaHtml = `<img src="/static/uploads/chat/${fileUrl}" class="chat-image-attachment" onclick="openLightbox(this.src)">`;
+            } else {
+                mediaHtml = `<a href="/static/uploads/chat/${fileUrl}" target="_blank" class="chat-file-attachment"><i class="fa-regular fa-file"></i> ${fileName}</a>`;
+            }
+        }
+        
+        bubble.innerHTML = `
+            ${mediaHtml}
+            ${content ? `<div class="content">${content}</div>` : ''}
+            <div class="message-time">${time}</div>
+        `;
+        chatContainer.appendChild(bubble);
+    }
+
+    // Polling new messages without clear/rebuild flicker
+    async function pollMessages() {
+        try {
+            const response = await fetch(`/messages/${recipientId}`, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            if (response.ok) {
+                const messages = await response.json();
+                let hasNew = false;
+                messages.forEach(m => {
+                    if (!renderedMessageIds.has(m.id)) {
+                        appendMessageBubble(m.content, m.created_at, m.sender_id === currentUserId, m.file_url, m.file_name, m.is_image, m.id);
+                        renderedMessageIds.add(m.id);
+                        hasNew = true;
+                    }
+                });
+                
+                if (hasNew) {
+                    // Hide empty message info if visible
+                    const noMsgInfo = document.getElementById('no-msg-info');
+                    if (noMsgInfo) noMsgInfo.style.display = 'none';
+                    scrollToBottom();
+                }
+            }
+        } catch (e) {
+            console.error("Error polling messages", e);
+        }
+    }
+
+    // Poll every 3 seconds
+    setInterval(pollMessages, 3000);
+    
+    // Lightbox modal logic
+    function openLightbox(src) {
+        const modal = document.getElementById('lightbox-modal');
+        const img = document.getElementById('lightbox-img');
+        img.src = src;
+        modal.style.display = 'flex';
+    }
+
+    function closeLightbox() {
+        const modal = document.getElementById('lightbox-modal');
+        modal.style.display = 'none';
+    }
+</script>
+{% endif %}
+{% endblock %}

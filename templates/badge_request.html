@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}იარლიყის მოთხოვნა - choloka.ge{% endblock %}
+
+{% block content %}
+<div class="animate-fade" style="max-width: 650px; margin: 0 auto;">
+    <div style="margin-bottom: 30px;">
+        <h1 style="background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-emerald) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 30px;">იარლიყის მოთხოვნა</h1>
+        <p style="color: var(--text-secondary);">მოითხოვეთ სპეციალური იარლიყი თქვენს პროფილზე გამოსაჩენად (მაგ: სკოლის დირექტორი, წამყვანი მასწავლებელი და ა.შ.)</p>
+    </div>
+
+    <div class="glass-panel" style="background: #ffffff; border-radius: var(--border-radius-md); box-shadow: var(--shadow-md);">
+        <form action="{{ url_for('request_badge') }}" method="POST">
+            <div class="form-group">
+                <label for="requested_badge"><i class="fa-solid fa-certificate" style="color: var(--accent-blue);"></i> სასურველი იარლიყი (Label)</label>
+                <input type="text" id="requested_badge" name="requested_badge" class="form-control" placeholder="მაგ: სკოლის დირექტორი" required>
+                <small style="color: var(--text-muted); display: block; margin-top: 4px;">მაქსიმუმ 3-4 სიტყვა, რაც პროფილზე მოკლედ და ლამაზად გამოჩნდება.</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="justification"><i class="fa-solid fa-align-left" style="color: var(--accent-blue);"></i> დასაბუთება / ახსნა</label>
+                <textarea id="justification" name="justification" class="form-control" placeholder="გთხოვთ ახსნათ და დაასაბუთოთ თუ რატომ გეკუთვნით აღნიშნული იარლიყი..." required></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">
+                მოთხოვნის გაგზავნა <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+
+    <!-- User's request history -->
+    <div style="margin-top: 40px;">
+        <h3 style="font-size: 18px; margin-bottom: 15px; color: var(--text-primary);"><i class="fa-solid fa-clock-rotate-left" style="color: var(--accent-amber);"></i> ჩემი მოთხოვნების ისტორია</h3>
+        {% if current_user.badge_requests %}
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                {% for req in current_user.badge_requests | sort(attribute='created_at', reverse=True) %}
+                    <div class="glass-panel" style="background: #ffffff; padding: 20px; border-radius: var(--border-radius-sm); border: 1px solid var(--glass-border); box-shadow: var(--shadow-sm);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <span style="font-weight: 600; font-size: 15px; color: var(--text-primary);">
+                                იარლიყი: <strong style="color: var(--accent-blue);">{{ req.requested_badge }}</strong>
+                            </span>
+                            
+                            {% if req.status == 'approved' %}
+                                <span class="badge badge-admin" style="text-transform: none; font-size: 11px;"><i class="fa-solid fa-circle-check"></i> დამტკიცებულია</span>
+                            {% elif req.status == 'rejected' %}
+                                <span class="badge badge-danger" style="text-transform: none; font-size: 11px;"><i class="fa-solid fa-circle-xmark"></i> უარყოფილია</span>
+                            {% else %}
+                                <span class="badge badge-teacher" style="text-transform: none; font-size: 11px;"><i class="fa-solid fa-clock"></i> განხილვაშია</span>
+                            {% endif %}
+                        </div>
+                        
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">
+                            <strong>დასაბუთება:</strong> {{ req.justification }}
+                        </p>
+                        
+                        {% if req.admin_explanation %}
+                            <div style="margin-top: 10px; padding: 10px; background: #f8fafc; border-left: 3px solid var(--accent-amber); border-radius: 4px; font-size: 12px;">
+                                <strong style="color: var(--text-primary);"><i class="fa-solid fa-comment-dots"></i> ადმინისტრატორის კომენტარი:</strong>
+                                <p style="margin-top: 4px; color: var(--text-secondary);">{{ req.admin_explanation }}</p>
+                            </div>
+                        {% endif %}
+                        
+                        <span style="font-size: 10px; color: var(--text-muted); display: block; margin-top: 10px;">
+                            <i class="fa-regular fa-calendar"></i> {{ req.created_at.strftime('%Y-%m-%d %H:%M') }}
+                        </span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="glass-panel" style="text-align: center; padding: 30px; color: var(--text-muted); background: #ffffff;">
+                <p>მოთხოვნების ისტორია ცარიელია.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

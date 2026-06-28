@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}პროფილი - choloka.ge{% endblock %}
+
+{% block content %}
+<div class="animate-fade" style="display: flex; flex-direction: column; gap: 30px;">
+    <!-- Header Block -->
+    <div class="glass-panel" style="display: flex; align-items: center; gap: 24px; padding: 30px; background: #ffffff; border-radius: var(--border-radius-md); box-shadow: var(--shadow-sm);">
+        <div class="avatar" style="width: 80px; height: 80px; font-size: 32px; flex-shrink: 0;">
+            {% if current_user.profile_pic %}
+                <img src="{{ url_for('static', filename='uploads/profiles/' + current_user.profile_pic) }}" alt="Avatar">
+            {% else %}
+                {{ current_user.username[0]|upper }}
+            {% endif %}
+        </div>
+        <div>
+            <h1 style="margin-bottom: 6px; font-size: 28px; display: flex; align-items: center; gap: 10px;">
+                {{ current_user.username }}
+                {% if current_user.custom_badge %}
+                    <span class="badge badge-custom" style="font-size: 12px; padding: 4px 10px;"><i class="fa-solid fa-certificate"></i> {{ current_user.custom_badge }}</span>
+                {% endif %}
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 8px;">
+                <i class="fa-solid fa-envelope" style="color: var(--accent-blue);"></i> {{ current_user.email }} • 
+                <i class="fa-solid fa-user-tag" style="color: var(--accent-blue);"></i> 
+                {% if current_user.is_admin %}
+                    ადმინისტრატორი
+                {% elif current_user.role == 'teacher' %}
+                    მასწავლებელი
+                {% elif current_user.role == 'student' %}
+                    მოსწავლე
+                {% else %}
+                    სხვა
+                {% endif %}
+            </p>
+            <a href="{{ url_for('user_profile', user_id=current_user.id) }}" class="btn btn-secondary" style="font-size: 11px; padding: 6px 12px; border-radius: var(--border-radius-sm);">
+                საჯარო პროფილის ნახვა <i class="fa-solid fa-eye"></i>
+            </a>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 360px; gap: 30px;">
+        <!-- Left: Form Editor -->
+        <div class="glass-panel" style="background: #ffffff; border-radius: var(--border-radius-md); box-shadow: var(--shadow-sm);">
+            <h3 style="margin-bottom: 20px; font-size: 20px; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px;">
+                <i class="fa-solid fa-user-pen" style="color: var(--accent-blue);"></i> პროფილის რედაქტირება
+            </h3>
+            
+            <form action="{{ url_for('profile') }}" method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="profile_pic"><i class="fa-regular fa-image" style="color: var(--accent-blue);"></i> პროფილის სურათი</label>
+                    <input type="file" id="profile_pic" name="profile_pic" class="form-control" accept="image/*">
+                    {% if current_user.profile_pic %}
+                        <small style="color: var(--accent-emerald); display: block; margin-top: 5px;"><i class="fa-solid fa-circle-check"></i> სურათი ატვირთულია</small>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="cv_file"><i class="fa-regular fa-file-pdf" style="color: var(--accent-rose);"></i> CV / სერტიფიკატები (მხოლოდ PDF)</label>
+                    <input type="file" id="cv_file" name="cv_file" class="form-control" accept=".pdf">
+                    {% if current_user.cv_url %}
+                        <small style="color: var(--accent-emerald); display: block; margin-top: 5px;"><i class="fa-solid fa-circle-check"></i> PDF ატვირთულია: <a href="{{ url_for('static', filename='uploads/pdfs/' + current_user.cv_url) }}" target="_blank" style="font-weight: 600;">ნახვა</a></small>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="bio"><i class="fa-solid fa-circle-info" style="color: var(--accent-blue);"></i> ჩემს შესახებ (მოკლე ბიოგრაფია)</label>
+                    <textarea id="bio" name="bio" class="form-control" placeholder="დაწერეთ რამდენიმე სიტყვა თქვენს შესახებ...">{{ current_user.bio or '' }}</textarea>
+                </div>
+                
+                {% if current_user.role in ['teacher', 'student'] %}
+                <div style="border-top: 1px solid var(--glass-border); padding-top: 20px; margin-top: 20px;">
+                    <h4 style="font-size: 15px; color: var(--accent-amber); margin-bottom: 15px;">
+                        <i class="fa-solid fa-building-columns"></i> საგანმანათლებლო ინფორმაცია
+                    </h4>
+                    
+                    <div class="form-group">
+                        <label for="school">სკოლა</label>
+                        <input type="text" id="school" name="school" class="form-control" value="{{ current_user.school or '' }}" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="city">ქალაქი / რეგიონი</label>
+                        <input type="text" id="city" name="city" class="form-control" value="{{ current_user.city or '' }}" required>
+                    </div>
+                    
+                    {% if current_user.role == 'teacher' %}
+                    <div class="form-group">
+                        <label for="phone">ტელეფონის ნომერი</label>
+                        <input type="text" id="phone" name="phone" class="form-control" value="{{ current_user.phone or '' }}" required>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <!-- Login Email Notification Toggle -->
+                <div style="border-top: 1px solid var(--glass-border); padding-top: 20px; margin-top: 20px;">
+                    <h4 style="font-size: 15px; color: var(--accent-blue); margin-bottom: 15px;">
+                        <i class="fa-solid fa-bell"></i> შეტყობინებების პარამეტრები
+                    </h4>
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: rgba(59,130,246,0.05); border: 1px solid rgba(59,130,246,0.15); border-radius: var(--border-radius-sm);">
+                        <div>
+                            <p style="font-size: 14px; font-weight: 600; margin-bottom: 3px;">შესვლის მეილი</p>
+                            <p style="font-size: 12px; color: var(--text-muted); margin: 0;">ყოველი შესვლისას გამოიგზავნოს მეილი</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="hidden" name="login_email_notify" value="0">
+                            <input type="checkbox" name="login_email_notify" value="1"
+                                {% if current_user.login_email_notify %}checked{% endif %}
+                                onchange="this.previousElementSibling.value = this.checked ? '1' : '0'">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="margin-top: 15px;">
+                    ცვლილებების შენახვა <i class="fa-solid fa-floppy-disk"></i>
+                </button>
+            </form>
+        </div>
+        
+        <!-- Right: Admin Code and Access logs -->
+        <div style="display: flex; flex-direction: column; gap: 30px;">
+            <!-- Admin promotion code -->
+            <div class="glass-panel" style="background: #ffffff; border-radius: var(--border-radius-md); box-shadow: var(--shadow-sm);">
+                <h3><i class="fa-solid fa-shield-halved" style="color: var(--accent-amber);"></i> დეველოპერის უფლებები</h3>
+                {% if current_user.is_admin %}
+                    <div style="padding: 16px; background: rgba(5, 150, 105, 0.08); border: 1px solid rgba(5, 150, 105, 0.2); border-radius: var(--border-radius-sm); text-align: center;">
+                        <p style="color: #047857; font-weight: 600;"><i class="fa-solid fa-circle-check"></i> თქვენ ხართ ადმინისტრატორი</p>
+                    </div>
+                {% else %}
+                    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px; line-height: 1.4;">
+                        ადმინისტრატორის (დეველოპერის) სტატუსის მისაღებად შეიყვანეთ საიდუმლო კოდი:
+                    </p>
+                    <form action="{{ url_for('profile') }}" method="POST">
+                        <div class="form-group">
+                            <input type="password" name="admin_code" class="form-control" placeholder="შეიყვანეთ კოდი" required style="text-align: center;">
+                        </div>
+                        <button type="submit" class="btn btn-amber" style="width: 100%;">
+                            გაადმინება <i class="fa-solid fa-user-shield"></i>
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+
+            <!-- Login History (Security logs) -->
+            <div class="glass-panel" style="background: #ffffff; border-radius: var(--border-radius-md); box-shadow: var(--shadow-sm);">
+                <h3><i class="fa-solid fa-clock-rotate-left" style="color: var(--accent-rose);"></i> შესვლის ისტორია</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">უსაფრთხოების მიზნით, ყოველი შესვლისას გეგზავნებათ შეტყობინება ელ-ფოსტაზე.</p>
+                <div style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                    {% if current_user.login_histories %}
+                        {% for log in current_user.login_histories | sort(attribute='login_time', reverse=True) %}
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 8px; background: rgba(0,0,0,0.02); border-radius: var(--border-radius-sm); border: 1px solid var(--glass-border);">
+                                <span><i class="fa-solid fa-right-to-bracket" style="color: var(--accent-emerald);"></i> ავტორიზაცია</span>
+                                <span style="color: var(--text-secondary);">{{ log.login_time.strftime('%Y-%m-%d %H:%M') }} UTC</span>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p style="font-size: 12px; color: var(--text-muted); text-align: center;">ისტორია ცარიელია</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

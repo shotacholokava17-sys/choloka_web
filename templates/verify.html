@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}ელ-ფოსტის ვერიფიკაცია - choloka.ge{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper animate-fade">
+    <div class="glass-panel auth-card" style="border-radius: var(--border-radius-md); box-shadow: var(--shadow-lg); background: #ffffff; text-align: center;">
+        <div class="auth-header">
+            <h1 style="background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-emerald) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 28px;"><i class="fa-solid fa-envelope-circle-check"></i> ვერიფიკაცია</h1>
+            <p style="color: var(--text-secondary); margin-top: 10px;">
+                ვერიფიკაციის 6-ნიშნა კოდი გაიგზავნა მისამართზე:<br>
+                <strong style="color: var(--accent-blue);">{{ user_email }}</strong>
+            </p>
+        </div>
+        
+        <form action="{{ url_for('verify') }}" method="POST" style="margin-top: 20px;">
+            <div class="form-group">
+                <label for="code">შეიყვანეთ კოდი</label>
+                <input type="text" id="code" name="code" class="form-control" placeholder="123456" required maxlength="6" style="font-size: 20px; text-align: center; letter-spacing: 5px; font-weight: bold;">
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+                დადასტურება და რეგისტრაცია <i class="fa-solid fa-circle-check"></i>
+            </button>
+        </form>
+        
+        <!-- Dev code helper for local testing if needed -->
+        {% if dev_code %}
+        <div style="margin-top: 15px; padding: 10px; background: #f1f5f9; border-radius: var(--border-radius-sm); border: 1px dashed var(--glass-border); font-size: 12px; color: var(--text-muted);">
+            <i class="fa-solid fa-code"></i> დეველოპერის ტესტ კოდი: <strong>{{ dev_code }}</strong>
+        </div>
+        {% endif %}
+        
+        <div class="auth-footer" style="margin-top: 25px; border-top: 1px solid var(--glass-border); padding-top: 15px;">
+            <p>არ მიგიღიათ კოდი? <a href="{{ url_for('resend_code') }}" style="font-weight: 600;"><i class="fa-solid fa-rotate-right"></i> კოდის ხელახლა გაგზავნა</a></p>
+            <p style="margin-top: 10px;"><a href="{{ url_for('register') }}" style="color: var(--text-muted); font-size: 13px;"><i class="fa-solid fa-arrow-left-long"></i> რეგისტრაციაზე დაბრუნება</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

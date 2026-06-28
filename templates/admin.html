@@ -1,0 +1,552 @@
+{% extends "base.html" %}
+
+{% block title %}ადმინ პანელი - choloka.ge{% endblock %}
+
+{% block content %}
+<div class="animate-fade">
+    <div style="margin-bottom: 30px;">
+        <h1 style="background: linear-gradient(135deg, var(--accent-emerald) 0%, var(--accent-blue) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 32px;">ადმინისტრატორის პანელი</h1>
+        <p style="color: var(--text-secondary);">პლატფორმის მომხმარებლების, პოსტების, კურსების, გამოკითხვების, რეკლამებისა და იარლიყების მართვა</p>
+    </div>
+
+    <!-- Admin Navigation Tabs -->
+    <div class="admin-tabs">
+        <div class="admin-tab active" onclick="switchTab('users-tab', this)"><i class="fa-solid fa-users"></i> მომხმარებლები</div>
+        <div class="admin-tab" onclick="switchTab('posts-tab', this)"><i class="fa-solid fa-file-invoice"></i> პოსტები ({{ pending_posts|length }})</div>
+        <div class="admin-tab" onclick="switchTab('courses-tab', this)"><i class="fa-solid fa-book-open"></i> კურსები</div>
+        <div class="admin-tab" onclick="switchTab('polls-tab', this)"><i class="fa-solid fa-calendar-plus"></i> გამოკითხვები</div>
+        <div class="admin-tab" onclick="switchTab('ads-tab', this)"><i class="fa-solid fa-rectangle-ad"></i> რეკლამები ({{ ads|length }})</div>
+        <div class="admin-tab" onclick="switchTab('badges-tab', this)"><i class="fa-solid fa-certificate"></i> იარლიყები ({{ badge_requests|length }})</div>
+    </div>
+
+    <!-- Tab 1: Users Management -->
+    <div id="users-tab" class="admin-section active">
+        <div class="glass-panel" style="margin-bottom: 24px; background: #ffffff;">
+            <h3 style="font-size: 16px; margin-bottom: 16px;"><i class="fa-solid fa-filter"></i> ძებნის და სორტირების სისტემა</h3>
+            
+            <form action="{{ url_for('admin_panel') }}" method="GET" class="admin-filters">
+                <div>
+                    <label style="font-size: 12px; color: var(--text-secondary);">სახელი / იუზერნეიმი</label>
+                    <input type="text" name="search_name" class="form-control" placeholder="მაგ: shota" value="{{ request.args.get('search_name', '') }}">
+                </div>
+                
+                <div>
+                    <label style="font-size: 12px; color: var(--text-secondary);">როლი</label>
+                    <select name="role" class="form-control">
+                        <option value="">ყველა</option>
+                        <option value="teacher" {% if request.args.get('role') == 'teacher' %}selected{% endif %}>მასწავლებელი</option>
+                        <option value="student" {% if request.args.get('role') == 'student' %}selected{% endif %}>მოსწავლე</option>
+                        <option value="other" {% if request.args.get('role') == 'other' %}selected{% endif %}>სხვა</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label style="font-size: 12px; color: var(--text-secondary);">ქალაქი / რეგიონი</label>
+                    <input type="text" name="city" class="form-control" placeholder="მაგ: თბილისი" value="{{ request.args.get('city', '') }}">
+                </div>
+                
+                <div>
+                    <label style="font-size: 12px; color: var(--text-secondary);">სკოლა</label>
+                    <input type="text" name="school" class="form-control" placeholder="მაგ: N17" value="{{ request.args.get('school', '') }}">
+                </div>
+                
+                <div>
+                    <label style="font-size: 12px; color: var(--text-secondary);">ადმინის სტატუსი</label>
+                    <select name="is_admin" class="form-control">
+                        <option value="">ყველა</option>
+                        <option value="1" {% if request.args.get('is_admin') == '1' %}selected{% endif %}>ადმინები</option>
+                        <option value="0" {% if request.args.get('is_admin') == '0' %}selected{% endif %}>არაადმინები</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; align-items: flex-end; gap: 8px;">
+                    <button type="submit" class="btn btn-primary" style="flex-grow: 1; padding: 10px;">ძებნა <i class="fa-solid fa-search"></i></button>
+                    <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary" style="padding: 10px;" title="ფილტრების გასუფთავება"><i class="fa-solid fa-rotate-left"></i></a>
+                </div>
+            </form>
+        </div>
+
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>მომხმარებელი</th>
+                        <th>ელ-ფოსტა</th>
+                        <th>როლი</th>
+                        <th>სკოლა / ქალაქი</th>
+                        <th>ტელეფონი</th>
+                        <th>სტატუსები</th>
+                        <th>მოქმედება (გაეგზავნება მეილი)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                        <tr>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <div class="avatar" style="width: 32px; height: 32px; font-size: 14px;">
+                                        {% if u.profile_pic %}
+                                            <img src="{{ url_for('static', filename='uploads/profiles/' + u.profile_pic) }}" alt="Avatar">
+                                        {% else %}
+                                            {{ u.username[0]|upper }}
+                                        {% endif %}
+                                    </div>
+                                    <a href="{{ url_for('user_profile', user_id=u.id) }}" style="font-weight: 600; color: var(--text-primary);">{{ u.username }}</a>
+                                </div>
+                            </td>
+                            <td>{{ u.email }}</td>
+                            <td>
+                                {% if u.role == 'teacher' %}
+                                    <span class="badge badge-teacher">მასწავლებელი</span>
+                                {% elif u.role == 'student' %}
+                                    <span class="badge badge-student">მოსწავლე</span>
+                                {% else %}
+                                    <span class="badge badge-other">სხვა</span>
+                                {% endif %}
+                                
+                                {% if u.custom_badge %}
+                                    <br><span class="badge badge-custom" style="margin-top: 4px; font-size: 9px;"><i class="fa-solid fa-certificate"></i> {{ u.custom_badge }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if u.school %}
+                                    {{ u.school }} <br><small style="color: var(--text-muted);">{{ u.city }}</small>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ u.phone or '-' }}</td>
+                            <td>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <span>{% if u.is_verified %}<i class="fa-solid fa-circle-check" style="color: var(--accent-emerald);"></i> მეილი დადასტურებულია{% else %}<i class="fa-solid fa-clock" style="color: var(--text-muted);"></i> დაუდასტურებელი{% endif %}</span>
+                                    <span>{% if u.is_admin %}<span class="badge badge-admin">ადმინი</span>{% endif %}</span>
+                                    <span>{% if u.is_blocked %}<span style="color: var(--accent-rose); font-weight: 600;"><i class="fa-solid fa-ban"></i> დაბლოკილი</span>{% endif %}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 8px;">
+                                    <form action="{{ url_for('admin_user_action', user_id=u.id, action_type='toggle_admin') }}" method="POST">
+                                        <button type="submit" class="btn {% if u.is_admin %}btn-secondary{% else %}btn-primary{% endif %}" style="padding: 6px 12px; font-size: 11px;">
+                                            {% if u.is_admin %}ადმინის ჩამორთმევა{% else %}ადმინად ქცევა{% endif %}
+                                        </button>
+                                    </form>
+                                    
+                                    <form action="{{ url_for('admin_user_action', user_id=u.id, action_type='toggle_block') }}" method="POST">
+                                        <button type="submit" class="btn {% if u.is_blocked %}btn-amber{% else %}btn-secondary{% endif %}" style="padding: 6px 12px; font-size: 11px;">
+                                            {% if u.is_blocked %}განბლოკვა{% else %}დაბლოკვა{% endif %}
+                                        </button>
+                                    </form>
+                                    
+                                    <button onclick="openDeleteUserModal({{ u.id }}, '{{ u.username }}')" class="btn btn-danger" style="padding: 6px 12px; font-size: 11px;">
+                                        წაშლა
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Tab 2: Approval Queue -->
+    <div id="posts-tab" class="admin-section">
+        {% if pending_posts %}
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 20px;">
+                {% for post in pending_posts %}
+                    <div class="glass-panel" style="display: flex; flex-direction: column; justify-content: space-between; background: #ffffff;">
+                        <div>
+                            <div class="post-header" style="margin-bottom: 12px;">
+                                <div class="avatar">
+                                    {% if post.author.profile_pic %}
+                                        <img src="{{ url_for('static', filename='uploads/profiles/' + post.author.profile_pic) }}" alt="Avatar">
+                                    {% else %}
+                                        {{ post.author.username[0]|upper }}
+                                    {% endif %}
+                                </div>
+                                <div class="post-meta">
+                                    <span class="author-name">{{ post.author.username }}</span>
+                                    <span class="post-date">{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                </div>
+                            </div>
+                            
+                            <h3 style="font-size: 18px; margin-bottom: 8px;">{{ post.title }}</h3>
+                            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 15px; white-space: pre-wrap;">{{ post.content }}</p>
+                            
+                            <!-- Display post photos -->
+                            {% if post.media %}
+                                <div class="post-media-grid" style="margin-bottom: 15px;">
+                                    {% for m in post.media %}
+                                        <img src="{{ url_for('static', filename='uploads/posts/' + m.file_path) }}" style="max-height: 150px; object-fit: cover;">
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+
+                            {% if post.media_url %}
+                                <div class="post-media" style="margin-bottom: 15px;">
+                                    {% if 'youtube.com' in post.media_url or 'youtu.be' in post.media_url %}
+                                        <iframe src="{{ post.media_url | youtube_embed }}" style="width:100%; aspect-ratio:16/9; border:none;"></iframe>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; border-top: 1px solid var(--glass-border); padding-top: 15px;">
+                            <form action="{{ url_for('admin_post_approve', post_id=post.id) }}" method="POST" style="flex-grow: 1;">
+                                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 8px;">დადასტურება <i class="fa-solid fa-check"></i></button>
+                            </form>
+                            <form action="{{ url_for('admin_post_delete', post_id=post.id) }}" method="POST" style="flex-grow: 1;">
+                                <button type="submit" class="btn btn-danger" style="width: 100%; padding: 8px;">წაშლა <i class="fa-solid fa-trash"></i></button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="glass-panel" style="text-align: center; padding: 50px; color: var(--text-secondary); background: #ffffff;">
+                <i class="fa-solid fa-circle-check" style="font-size: 40px; color: var(--accent-emerald); margin-bottom: 12px;"></i>
+                <h3>დასადასტურებელი პოსტები არ არის</h3>
+                <p style="margin-top: 10px;">ყველა მომხმარებლის მიერ გამოგზავნილი სიახლე განხილულია.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Tab 3: Courses Designer -->
+    <div id="courses-tab" class="admin-section">
+        <div style="display: grid; grid-template-columns: 1fr 450px; gap: 30px;">
+            <!-- Create course and dynamic form fields -->
+            <div class="glass-panel" style="background: #ffffff;">
+                <h3><i class="fa-solid fa-plus" style="color: var(--accent-blue);"></i> ახალი კურსის შექმნა</h3>
+                
+                <form action="{{ url_for('admin_course_add') }}" method="POST">
+                    <div class="form-group">
+                        <label for="course_title">კურსის სათაური</label>
+                        <input type="text" id="course_title" name="title" class="form-control" placeholder="მაგ: ბიოლოგია აბიტურიენტებისთვის" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="course_desc">კურსის აღწერა</label>
+                        <textarea id="course_desc" name="description" class="form-control" placeholder="ჩაწერეთ კურსის მოკლე აღწერა, ხანგრძლივობა, ფასი..." required></textarea>
+                    </div>
+                    
+                    <div style="border-top: 1px solid var(--glass-border); padding-top: 15px; margin-top: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h4 style="font-size: 15px; color: var(--accent-amber); margin: 0;"><i class="fa-solid fa-cubes"></i> სარეგისტრაციო ფორმის ველები (შაბლონი)</h4>
+                            <button type="button" class="btn btn-secondary" onclick="addFormField()" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-plus"></i> ველის დამატება</button>
+                        </div>
+                        
+                        <div id="form-builder-fields" style="display: flex; flex-direction: column; gap: 12px;">
+                            <!-- Default field template -->
+                            <div class="form-field-row" style="display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.02); padding: 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--glass-border);">
+                                <input type="text" name="field_name[]" class="form-control" placeholder="ველის სათაური (მაგ: სახელი და გვარი)" value="სახელი და გვარი" required style="flex-grow: 2;">
+                                <select name="field_type[]" class="form-control" style="width: 130px;">
+                                    <option value="text">ტექსტური</option>
+                                    <option value="email">ელ-ფოსტა</option>
+                                    <option value="textarea">დიდი ტექსტი</option>
+                                </select>
+                                <select name="field_required[]" class="form-control" style="width: 120px;">
+                                    <option value="1">სავალდებულო</option>
+                                    <option value="0">არასავალდებულო</option>
+                                </select>
+                                <button type="button" class="btn btn-danger" onclick="removeFormField(this)" style="padding: 10px; border-radius: 4px;" title="წაშლა"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 25px;">კურსის დამატება <i class="fa-solid fa-save"></i></button>
+                </form>
+            </div>
+            
+            <!-- List of existing courses -->
+            <div class="glass-panel" style="background: #ffffff;">
+                <h3><i class="fa-solid fa-book" style="color: var(--accent-amber);"></i> მიმდინარე კურსები</h3>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    {% if courses %}
+                        {% for c in courses %}
+                            <div style="padding: 16px; background: rgba(0,0,0,0.02); border-radius: var(--border-radius-sm); border: 1px solid var(--glass-border);">
+                                <h4 style="margin-bottom: 5px; font-size: 15px;">{{ c.title }}</h4>
+                                <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; max-height: 50px; overflow: hidden; text-overflow: ellipsis;">{{ c.description }}</p>
+                                <div style="display: flex; gap: 8px; justify-content: space-between;">
+                                    <span style="font-size: 11px; color: var(--text-muted);"><i class="fa-solid fa-users"></i> დარეგისტრირებულია: {{ c.registrations|length }}</span>
+                                    <a href="{{ url_for('course_register', course_id=c.id) }}" style="font-size: 11px; font-weight: bold;"><i class="fa-solid fa-eye"></i> ფორმის ნახვა</a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p style="text-align: center; color: var(--text-muted); font-size: 13px;">კურსები ჯერ არ არის დამატებული.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 4: Poll Scheduler -->
+    <div id="polls-tab" class="admin-section">
+        <div style="display: grid; grid-template-columns: 1fr 450px; gap: 30px;">
+            <!-- Scheduler Form -->
+            <div class="glass-panel" style="background: #ffffff;">
+                <h3><i class="fa-solid fa-calendar-plus" style="color: var(--accent-blue);"></i> კალენდარში გამოკითხვის ჩასმა</h3>
+                
+                <form action="{{ url_for('admin_poll_add') }}" method="POST">
+                    <div class="form-group">
+                        <label for="poll_question">გამოკითხვის კითხვა</label>
+                        <input type="text" id="poll_question" name="question" class="form-control" placeholder="მაგ: მოსწონს თუ არა მოსწავლეებს ონლაინ გაკვეთილები?" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-list-ul"></i> პასუხის ვარიანტები</label>
+                        <div id="poll-choices-container" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
+                            <input type="text" name="options[]" class="form-control" placeholder="ვარიანტი 1" required>
+                            <input type="text" name="options[]" class="form-control" placeholder="ვარიანტი 2" required>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="addPollChoice()" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-plus"></i> ვარიანტის დამატება</button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="date_scheduled"><i class="fa-solid fa-calendar-day"></i> გამოქვეყნების თარიღი</label>
+                        <input type="date" id="date_scheduled" name="date_scheduled" class="form-control" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">გამოკითხვის ჩანიშვნა <i class="fa-solid fa-calendar-check"></i></button>
+                </form>
+            </div>
+            
+            <!-- List of upcoming/past polls -->
+            <div class="glass-panel" style="background: #ffffff;">
+                <h3><i class="fa-solid fa-list" style="color: var(--accent-amber);"></i> ჩანიშნული გამოკითხვები</h3>
+                <div style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                    {% if polls %}
+                        {% for p in polls | sort(attribute='date_scheduled', reverse=True) %}
+                            <div style="padding: 12px; background: rgba(0,0,0,0.02); border-radius: var(--border-radius-sm); border: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="font-size: 14px; margin-bottom: 3px;">{{ p.question }}</h4>
+                                    <span style="font-size: 11px; color: var(--accent-blue);"><i class="fa-regular fa-calendar"></i> {{ p.date_scheduled }}</span>
+                                </div>
+                                <span class="badge badge-other" style="font-size: 10px;">{{ p.votes|length }} ხმა</span>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p style="text-align: center; color: var(--text-muted); font-size: 13px;">გამოკითხვები ჯერ არ არის ჩანიშნული.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 5: Ads Management -->
+    <div id="ads-tab" class="admin-section">
+        <div style="display: grid; grid-template-columns: 1fr 450px; gap: 30px;">
+            <!-- Upload Ads Form -->
+            <div class="glass-panel" style="background: #ffffff;">
+                <h3><i class="fa-solid fa-ad" style="color: var(--accent-blue);"></i> ახალი რეკლამის ატვირთვა</h3>
+                <form action="{{ url_for('admin_ad_add') }}" method="POST" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="ad_file"><i class="fa-regular fa-image" style="color: var(--accent-blue);"></i> რეკლამის ბანერი (სურათი)</label>
+                        <input type="file" id="ad_file" name="ad_file" class="form-control" accept="image/*" required>
+                        <small style="color: var(--text-muted);">რეკომენდირებულია ჰორიზონტალური სურათი (მაგ. 350x200 ან მსგავსი).</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="link_url"><i class="fa-solid fa-link" style="color: var(--accent-blue);"></i> სამიზნე ბმული (URL - არასავალდებულო)</label>
+                        <input type="url" id="link_url" name="link_url" class="form-control" placeholder="https://example.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="duration_days"><i class="fa-regular fa-clock" style="color: var(--accent-blue);"></i> ხანგრძლივობა (დღეები)</label>
+                        <input type="number" id="duration_days" name="duration_days" class="form-control" min="1" max="365" value="1" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">რეკლამის ატვირთვა <i class="fa-solid fa-upload"></i></button>
+                </form>
+            </div>
+
+            <!-- Active Ads list -->
+            <div class="glass-panel" style="background: #ffffff;">
+                <h3><i class="fa-solid fa-list-check" style="color: var(--accent-amber);"></i> აქტიური ბანერები</h3>
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    {% if ads %}
+                        {% for ad in ads %}
+                            <div style="padding: 16px; background: rgba(0,0,0,0.02); border-radius: var(--border-radius-sm); border: 1px solid var(--glass-border); display: flex; flex-direction: column; gap: 10px;">
+                                <img src="{{ url_for('static', filename='uploads/ads/' + ad.image_url) }}" style="width: 100%; height: 100px; object-fit: cover; border-radius: 4px;">
+                                <div style="font-size: 12px; color: var(--text-secondary);">
+                                    <strong>ბმული:</strong> {{ ad.link_url or 'არ არის' }}<br>
+                                    <strong>ვადა:</strong> {{ ad.end_time.strftime('%Y-%m-%d %H:%M') }} UTC
+                                </div>
+                                <form action="{{ url_for('admin_ad_delete', ad_id=ad.id) }}" method="POST">
+                                    <button type="submit" class="btn btn-danger" style="padding: 6px 12px; font-size: 11px; width: 100%;">
+                                        წაშლა <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p style="text-align: center; color: var(--text-muted); font-size: 13px;">აქტიური რეკლამები არ არის.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 6: Badges/Labels Requests -->
+    <div id="badges-tab" class="admin-section">
+        <h3 style="font-size: 20px; margin-bottom: 20px;"><i class="fa-solid fa-certificate" style="color: var(--accent-blue);"></i> იარლიყების მოთხოვნები</h3>
+        {% if badge_requests %}
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                {% for req in badge_requests %}
+                    <div class="glass-panel" style="background: #ffffff; padding: 24px; border-radius: var(--border-radius-md); box-shadow: var(--shadow-sm); border: 1px solid var(--glass-border);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                            <div>
+                                <h4 style="font-size: 16px; margin-bottom: 4px;">
+                                    მომხმარებელი: <a href="{{ url_for('user_profile', user_id=req.user_id) }}" style="font-weight: bold; color: var(--accent-blue);">{{ req.user.username }}</a>
+                                </h4>
+                                <span style="font-size: 12px; color: var(--text-muted);"><i class="fa-regular fa-clock"></i> {{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                            </div>
+                            
+                            {% if req.status == 'approved' %}
+                                <span class="badge badge-admin"><i class="fa-solid fa-circle-check"></i> დამტკიცებული</span>
+                            {% elif req.status == 'rejected' %}
+                                <span class="badge badge-danger"><i class="fa-solid fa-circle-xmark"></i> უარყოფილი</span>
+                            {% else %}
+                                <span class="badge badge-teacher"><i class="fa-solid fa-clock"></i> განხილვაშია</span>
+                            {% endif %}
+                        </div>
+
+                        <div style="font-size: 14px; margin-bottom: 15px;">
+                            <div><strong>მოთხოვნილი იარლიყი:</strong> <span class="badge badge-custom">{{ req.requested_badge }}</span></div>
+                            <div style="margin-top: 8px; color: var(--text-secondary); line-height: 1.5;"><strong>დასაბუთება:</strong> {{ req.justification }}</div>
+                        </div>
+
+                        {% if req.status == 'pending' %}
+                            <form action="{{ url_for('admin_badge_action', request_id=req.id, action='approve') }}" method="POST" style="border-top: 1px solid var(--glass-border); padding-top: 15px; display: flex; flex-direction: column; gap: 10px;">
+                                <div class="form-group" style="margin-bottom: 10px;">
+                                    <label style="font-size: 12px; font-weight: bold;">ახსნა-განმარტება (მიუვა მომხმარებელს მეილზე და ჩატში)</label>
+                                    <input type="text" name="admin_explanation" class="form-control" placeholder="მაგ: თქვენი უფლებამოსილება დადასტურდა სკოლის რეესტრში" required>
+                                </div>
+                                <div style="display: flex; gap: 10px;">
+                                    <button type="submit" class="btn btn-primary" style="flex-grow: 1; padding: 10px;">დამტკიცება <i class="fa-solid fa-circle-check"></i></button>
+                                    <button type="submit" formmethod="POST" formaction="{{ url_for('admin_badge_action', request_id=req.id, action='reject') }}" class="btn btn-danger" style="flex-grow: 1; padding: 10px;">უარყოფა <i class="fa-solid fa-circle-xmark"></i></button>
+                                </div>
+                            </form>
+                        {% else %}
+                            <div style="border-top: 1px solid var(--glass-border); padding-top: 12px; font-size: 13px; color: var(--text-secondary);">
+                                <strong>ადმინისტრატორის პასუხი:</strong> {{ req.admin_explanation or 'კომენტარის გარეშე' }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="glass-panel" style="text-align: center; padding: 40px; color: var(--text-muted); background: #ffffff;">
+                <p>იარლიყების მოთხოვნები არ არის.</p>
+            </div>
+        {% endif %}
+         <!-- Modals for specific actions would go here -->
+    </div>
+</div>
+
+<!-- Delete User Modal -->
+<div id="delete-user-modal" class="modal">
+    <div class="modal-content animate-fade" style="max-width: 450px;">
+        <span class="close-modal" onclick="closeDeleteUserModal()">&times;</span>
+        <h3 style="margin-bottom: 20px; color: var(--accent-rose);"><i class="fa-solid fa-user-xmark"></i> მომხმარებლის წაშლა</h3>
+        
+        <p style="margin-bottom: 15px; color: var(--text-secondary);">ნამდვილად გსურთ <strong id="delete-username"></strong>-ის წაშლა? ეს მოქმედება შეუქცევადია.</p>
+        
+        <form id="delete-user-form" method="POST" action="">
+            <div class="form-group">
+                <label for="delete-reason" style="font-size: 13px;">წაშლის მიზეზი (გაეგზავნება მეილზე):</label>
+                <textarea id="delete-reason" name="reason" class="form-control" rows="3" required placeholder="მაგ: წესების დარღვევა..."></textarea>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteUserModal()">გაუქმება</button>
+                <button type="submit" class="btn btn-danger">წაშლა</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Switch Tabs
+function switchTab(tabId, el) {
+    // Hide all sections
+    const sections = document.querySelectorAll('.admin-section');
+    sections.forEach(s => s.classList.remove('active'));
+    
+    // Deactivate all tab headers
+    const tabs = document.querySelectorAll('.admin-tab');
+    tabs.forEach(t => t.classList.remove('active'));
+    
+    // Show active section
+    document.getElementById(tabId).classList.add('active');
+    el.classList.add('active');
+    
+    // Save active tab in URL hash for reload persistence
+    window.location.hash = tabId;
+}
+
+function openDeleteUserModal(userId, username) {
+    document.getElementById('delete-username').innerText = username;
+    document.getElementById('delete-user-form').action = '/admin/user/' + userId + '/delete';
+    document.getElementById('delete-user-modal').style.display = 'flex';
+}
+
+function closeDeleteUserModal() {
+    document.getElementById('delete-user-modal').style.display = 'none';
+}
+
+// Check if URL has hash to load correct tab
+document.addEventListener("DOMContentLoaded", function() {
+    const hash = window.location.hash;
+    if (hash) {
+        const cleanHash = hash.substring(1);
+        const tabEl = document.querySelector(`[onclick*="${cleanHash}"]`);
+        if (tabEl) {
+            tabEl.click();
+        }
+    }
+});
+
+// Dynamic form builder helpers
+function addFormField() {
+    const container = document.getElementById('form-builder-fields');
+    const div = document.createElement('div');
+    div.className = 'form-field-row';
+    div.style = 'display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.02); padding: 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--glass-border);';
+    div.innerHTML = `
+        <input type="text" name="field_name[]" class="form-control" placeholder="ველის სათაური" required style="flex-grow: 2;">
+        <select name="field_type[]" class="form-control" style="width: 130px;">
+            <option value="text">ტექსტური</option>
+            <option value="email">ელ-ფოსტა</option>
+            <option value="textarea">დიდი ტექსტი</option>
+        </select>
+        <select name="field_required[]" class="form-control" style="width: 120px;">
+            <option value="1">სავალდებულო</option>
+            <option value="0">არასავალდებულო</option>
+        </select>
+        <button type="button" class="btn btn-danger" onclick="removeFormField(this)" style="padding: 10px; border-radius: 4px;" title="წაშლა"><i class="fa-solid fa-trash"></i></button>
+    `;
+    container.appendChild(div);
+}
+
+function removeFormField(btn) {
+    btn.closest('.form-field-row').remove();
+}
+
+// Poll choices helper
+function addPollChoice() {
+    const container = document.getElementById('poll-choices-container');
+    const inputs = container.querySelectorAll('input');
+    const index = inputs.length + 1;
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.name = 'options[]';
+    input.className = 'form-control';
+    input.placeholder = 'ვარიანტი ' + index;
+    input.required = true;
+    
+    container.appendChild(input);
+}
+</script>
+{% endblock %}

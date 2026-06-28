@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}ადმინთან ჩატი - choloka.ge{% endblock %}
+
+{% block content %}
+<div class="messenger-container animate-fade" style="background: #ffffff; box-shadow: var(--shadow-md);">
+    {% if current_user.is_admin %}
+        <!-- Sidebar for Admin: Active chats -->
+        <div class="messenger-sidebar">
+            <div style="padding: 16px; border-bottom: 1px solid var(--glass-border); background: #f8fafc;">
+                <h3 style="font-size: 16px; margin: 0;"><i class="fa-solid fa-headset" style="color: var(--accent-emerald);"></i> შემოსული ჩატი</h3>
+            </div>
+            <div class="messenger-users-list">
+                {% if chat_users %}
+                    {% for u in chat_users %}
+                        <a href="{{ url_for('admin_chat', user_id=u.id) }}" class="chat-user-item {% if selected_user and selected_user.id == u.id %}active{% endif %}" style="text-decoration: none;">
+                            <div class="avatar" style="width: 38px; height: 38px; font-size: 15px; flex-shrink: 0;">
+                                {% if u.profile_pic %}
+                                    <img src="{{ url_for('static', filename='uploads/profiles/' + u.profile_pic) }}" alt="Avatar">
+                                {% else %}
+                                    {{ u.username[0]|upper }}
+                                {% endif %}
+                            </div>
+                            <div class="user-meta" style="flex-grow: 1; overflow: hidden;">
+                                <span class="name" style="font-size: 13px; font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ u.username }}</span>
+                                <span class="role" style="font-size: 10px; color: var(--text-muted);">{{ u.role|upper }}</span>
+                            </div>
+                        </a>
+                    {% endfor %}
+                {% else %}
+                    <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px;">
+                        აქტიური ჩატი არ ფიქსირდება.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Admin chat message area -->
+        <div class="chat-area">
+            {% if selected_user %}
+                <div class="chat-header">
+                    <div class="avatar" style="width: 40px; height: 40px; font-size: 16px; flex-shrink: 0;">
+                        {% if selected_user.profile_pic %}
+                            <img src="{{ url_for('static', filename='uploads/profiles/' + selected_user.profile_pic) }}" alt="Avatar">
+                        {% else %}
+                            {{ selected_user.username[0]|upper }}
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 16px;">ჩატი: {{ selected_user.username }}</h3>
+                        <span style="font-size: 12px; color: var(--text-muted);">{{ selected_user.role|upper }} • {{ selected_user.email }}</span>
+                    </div>
+                </div>
+                
+                <div class="chat-messages-container" id="chat-messages" style="background: #fafafb;">
+                    {% for m in chat_messages %}
+                        <div class="message-bubble {% if m.sender_role == 'admin' %}sent{% else %}received{% endif %}">
+                            <div class="content" style="white-space: pre-wrap;">{{ m.content }}</div>
+                            <div class="message-time">{{ m.created_at.strftime('%H:%M') }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="chat-input-area">
+                    <form action="{{ url_for('admin_chat') }}" method="POST" class="chat-input-form">
+                        <input type="hidden" name="user_id" value="{{ selected_user.id }}">
+                        <input type="text" name="content" class="form-control" placeholder="უპასუხეთ მომხმარებელს..." required autocomplete="off" style="height: 46px;">
+                        <button type="submit" class="btn btn-primary" style="padding: 12px 20px; height: 46px;">
+                            პასუხი <i class="fa-solid fa-reply"></i>
+                        </button>
+                    </form>
+                </div>
+            {% else %}
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary); text-align: center; padding: 40px;">
+                    <i class="fa-solid fa-headset" style="font-size: 60px; color: var(--text-muted); margin-bottom: 20px;"></i>
+                    <h2>მხარდაჭერის ჩატი</h2>
+                    <p style="max-width: 400px; margin-top: 10px; font-size: 14px; line-height: 1.5;">
+                        აირჩიეთ მომხმარებელი მარცხენა სიიდან მიმოწერის საწარმოებლად და დასახმარებლად.
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    {% else %}
+        <!-- Standard User: direct chat with admin -->
+        <div class="chat-area" style="grid-column: span 2;">
+            <div class="chat-header" style="background: rgba(217, 119, 6, 0.05); border-bottom: 1px solid var(--glass-border);">
+                <div class="avatar" style="background: linear-gradient(135deg, var(--accent-amber) 0%, #b45309 100%); width: 40px; height: 40px; flex-shrink: 0; color: #ffffff;">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 16px;">მხარდაჭერა - ადმინისტრაცია</h3>
+                    <span style="font-size: 12px; color: var(--text-muted);">შოთა ჭოლოკავა და დამხმარე გუნდი</span>
+                </div>
+            </div>
+            
+            <div class="chat-messages-container" id="chat-messages" style="background: #fafafb;">
+                {% if chat_messages %}
+                    {% for m in chat_messages %}
+                        <div class="message-bubble {% if m.sender_role == 'user' %}sent{% else %}received{% endif %}">
+                            <div class="content" style="white-space: pre-wrap;">{{ m.content }}</div>
+                            <div class="message-time">{{ m.created_at.strftime('%H:%M') }}</div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="text-align: center; color: var(--text-muted); padding: 40px;">
+                        <i class="fa-solid fa-circle-question" style="font-size: 40px; margin-bottom: 10px; color: var(--accent-amber);"></i>
+                        <p>გაქვთ კითხვა? მოგვწერეთ აქ და ადმინისტრატორი გიპასუხებთ რაც შეიძლება მალე.</p>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="chat-input-area">
+                <form action="{{ url_for('admin_chat') }}" method="POST" class="chat-input-form">
+                    <input type="text" name="content" class="form-control" placeholder="მიწერეთ ადმინისტრატორს..." required autocomplete="off" style="height: 46px;">
+                    <button type="submit" class="btn btn-amber" style="padding: 12px 20px; height: 46px;">
+                        გაგზავნა <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    // Scroll chat to bottom on load
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatContainer = document.getElementById('chat-messages');
+        if (chatContainer) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    });
+</script>
+{% endblock %}

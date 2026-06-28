@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}რეგისტრაცია კურსზე - choloka.ge{% endblock %}
+
+{% block content %}
+<div class="animate-fade" style="max-width: 650px; margin: 0 auto;">
+    <div style="margin-bottom: 30px;">
+        <h1 style="background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-emerald) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 30px; font-weight: 800;">კურსზე რეგისტრაცია</h1>
+        <p style="color: var(--text-secondary);">შეავსეთ ფორმა კურსზე დასარეგისტრირებლად: <strong style="color: var(--text-primary);">{{ course.title }}</strong></p>
+    </div>
+
+    <div class="glass-panel" style="background: #ffffff; border-radius: var(--border-radius-md); box-shadow: var(--shadow-md);">
+        <form action="{{ url_for('course_register', course_id=course.id) }}" method="POST">
+            {% for field in fields %}
+                <div class="form-group">
+                    <label for="field_{{ loop.index }}" style="font-weight: 500;">
+                        {{ field.name }} 
+                        {% if field.required %}<span style="color: var(--accent-rose);">*</span>{% endif %}
+                    </label>
+                    
+                    {% if field.type == 'text' %}
+                        <input type="text" id="field_{{ loop.index }}" name="{{ field.name }}" class="form-control" placeholder="შეიყვანეთ მნიშვნელობა" {% if field.required %}required{% endif %}>
+                    {% elif field.type == 'email' %}
+                        <input type="email" id="field_{{ loop.index }}" name="{{ field.name }}" class="form-control" placeholder="მაგ: example@gmail.com" {% if field.required %}required{% endif %}>
+                    {% elif field.type == 'textarea' %}
+                        <textarea id="field_{{ loop.index }}" name="{{ field.name }}" class="form-control" placeholder="შეიყვანეთ ტექსტი" {% if field.required %}required{% endif %} style="min-height: 100px;"></textarea>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            
+            <div style="display: flex; gap: 10px; margin-top: 25px; border-top: 1px solid var(--glass-border); padding-top: 20px;">
+                <button type="submit" class="btn btn-primary" style="flex-grow: 1;">
+                    განაცხადის გაგზავნა <i class="fa-solid fa-paper-plane"></i>
+                </button>
+                <a href="{{ url_for('courses') }}" class="btn btn-secondary">
+                    გაუქმება
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

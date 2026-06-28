@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}ავტორიზაცია - choloka.ge{% endblock %}
+
+{% block content %}
+<style>
+    /* მთლიანი გვერდის ფონის სურათი */
+    body {
+        margin: 0;
+        padding: 0;
+        background-image: url('{{ url_for("static", filename="back_code.png") }}');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    /* ფორმის მარჯვნივ გაწევა */
+    .auth-page {
+        display: flex;
+        justify-content: flex-end; /* ფორმას წევს მარჯვნივ */
+        align-items: center;
+        min-height: 100vh;
+        padding-right: 12%;
+    }
+
+    /* შუშის ეფექტის ბარათი - ოდნავ გაწელილი */
+    .glass-container {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 50px 40px; /* გავზარდეთ შიდა სივრცე */
+        border-radius: 24px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        width: 100%;
+        max-width: 420px; /* გავზარდეთ სიგანე (იყო 380px) */
+        text-align: center;
+    }
+
+    .brand-header h1 {
+        font-size: 2.8rem;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #a855f7, #06b6d4);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800;
+    }
+
+    .brand-header p {
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 2.5rem;
+        font-size: 1rem;
+    }
+
+    /* ანიმირებული ინპუტები შუშის სტილში */
+    .input-field {
+        position: relative;
+        margin-bottom: 35px;
+        text-align: left;
+    }
+
+    .input-field input {
+        width: 100%;
+        padding: 16px 15px;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        outline: none;
+        transition: 0.3s;
+        font-size: 1rem;
+        box-sizing: border-box;
+    }
+
+    .input-field input:focus {
+        border-color: #06b6d4;
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .input-field label {
+        position: absolute;
+        left: 15px;
+        top: 16px;
+        color: rgba(255, 255, 255, 0.7);
+        pointer-events: none;
+        transition: 0.3s ease;
+        padding: 0;
+    }
+
+    /* ანიმაცია focus-ზე */
+    .input-field input:focus + label,
+    .input-field input:not(:placeholder-shown) + label {
+        top: -24px;
+        left: 5px;
+        font-size: 0.85rem;
+        color: #06b6d4;
+        font-weight: 600;
+    }
+
+    /* ღილაკი */
+    .login-btn {
+        width: 100%;
+        padding: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.3s;
+        margin-top: 10px;
+        box-sizing: border-box;
+    }
+
+    .login-btn:hover {
+        transform: translateY(-2px);
+        background: rgba(255, 255, 255, 0.3);
+        box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.2);
+    }
+
+    /* ბმულების სექცია (რეგისტრაცია/პაროლის აღდგენა) */
+    .footer-links {
+        margin-top: 30px;
+        font-size: 0.9rem;
+    }
+
+    .footer-links a {
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        display: block;
+        margin-top: 12px;
+        transition: 0.3s;
+    }
+
+    .footer-links a:hover {
+        color: white;
+        text-shadow: 0 0 8px rgba(255,255,255,0.3);
+    }
+
+    .footer-links span {
+        color: #06b6d4;
+        font-weight: 600;
+    }
+</style>
+
+<div class="auth-page">
+    <div class="glass-container">
+        <div class="brand-header">
+            <h1>choloka.ge</h1>
+            <p>მოგესალმებით, გაიარეთ ავტორიზაცია</p>
+        </div>
+
+        <form action="{{ url_for('login') }}" method="POST">
+            <div class="input-field">
+                <input type="email" name="email" id="email" required placeholder=" ">
+                <label for="email">ელ-ფოსტა</label>
+            </div>
+
+            <div class="input-field">
+                <input type="password" name="password" id="password" required placeholder=" ">
+                <label for="password">პაროლი</label>
+            </div>
+
+            <button type="submit" class="login-btn">შესვლა</button>
+        </form>
+
+        <div class="footer-links">
+            <a href="{{ url_for('register') }}">ჯერ არ გაქვთ ანგარიში? <span>რეგისტრაცია</span></a>
+            <a href="{{ url_for('recover_password') }}">დაგავიწყდათ პაროლი?</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
